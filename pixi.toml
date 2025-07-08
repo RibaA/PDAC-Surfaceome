@@ -1,0 +1,14 @@
+[workspace]
+authors = ["Farnoosh Abbas Aghababazadeh <farnoosh.abasaghababazadeh@uhn.ca>"]
+channels = ["conda-forge"]
+name = "PDAC-Surfaceome"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[dependencies]
+r-base = ">=4.3.2,<4.4"
+r-ggplot2 = "*"
+r-dplyr = "*"
+r-survival = "*"
+r-readr = "*"
+r-tibble = "*"
