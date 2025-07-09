@@ -1,87 +1,122 @@
 #######################################################
 ## load libraries
 #######################################################
-library(TCGAbiolinks) 
+
+library(UCSCXenaTools)
+library(dplyr)
+library(data.table)
 library(MultiAssayExperiment)
+library(S4Vectors)
+library(qs)
 
 dir_in <- 'data/raw'
 dir_out <- 'data/proc'
 
 ###############################################################
-## load TCGA PDAC data 
-## https://www.bioconductor.org/packages/devel/bioc/vignettes/TCGAbiolinks/inst/doc/download_prepare.html#Transcriptome_Profiling 
+## load TCGA PAAD data 
 ##############################################################
-# Load TCGA RNA-seq data
-TCGAbiolinks:::getProjectSummary('TCGA-PAAD')
+# -- Load UCSCXenaTools metadata
+data(XenaData)
+xd <- as.data.table(XenaData)
+cohort <- "TCGA Pancreatic Cancer (PAAD)"
 
-query_rna <- GDCquery(
-  project = "TCGA-PAAD",
-  data.category = "Transcriptome Profiling", 
-  data.type = "Gene Expression Quantification", 
-  workflow.type = "STAR - Counts"
+# -- Get RNA-seq (TPM) and RPPA dataset identifiers
+rna_label <- "HiSeqV2"
+rppa_label <- "protein expression RPPA"
+
+rna_datasets <- xd[XenaCohorts == cohort & grepl(rna_label, XenaDatasets), XenaDatasets]
+rppa_datasets <- xd[XenaCohorts == cohort & grepl("RPPA", DataSubtype), XenaDatasets]
+
+# -- Get clinical matrix
+clinical_datasets <- xd[XenaCohorts == cohort & Type == "clinicalMatrix", XenaDatasets]
+
+# -- Download clinical data
+clinical_data <- XenaGenerate(subset = XenaCohorts == cohort & Type == "clinicalMatrix") |>
+  XenaQuery() |>
+  XenaDownload(destdir = "local_data", download_probeMap = TRUE) |>
+  XenaPrepare()
+
+class(clinical_data$PAAD_clinicalMatrix)
+
+# -- Download RNA-seq data
+rna_data <- XenaGenerate(subset = XenaDatasets %in% rna_datasets) |>
+  XenaQuery() |>
+  XenaDownload(destdir = "local_data", download_probeMap = TRUE) |>
+  XenaPrepare()
+
+# -- Download RPPA data
+rppa_data <- XenaGenerate(subset = XenaDatasets %in% rppa_datasets) |>
+  XenaQuery() |>
+  XenaDownload(destdir = "local_data", download_probeMap = TRUE) |>
+  XenaPrepare()
+
+# Merge clinical datasets
+cData <- copy(clinical_data[["PAAD_clinicalMatrix"]])
+cData <- as.data.table(cData)
+setnames(cData, "sampleID", "sample")
+setkeyv(cData, "sample")
+
+sData <- copy(clinical_data[["PAAD_survival.txt"]])
+sData <- as.data.table(sData)
+setkeyv(sData, "sample")
+
+merged_cData <- sData[cData, on = "sample"]
+
+# Load only RNA-seq TPM and gene annotation
+rna_expr <- as.data.frame(rna_data[["HiSeqV2.gz"]])
+rownames(rna_expr) <- rna_expr$sample
+rna_mat <- rna_expr[, -1]
+
+
+# -- Build SummarizedExperiment objects (RNA)
+rna_se <- SummarizedExperiment(
+  assays = list(expr = rna_mat),
+  colData = merged_cData[colnames(rna_mat), , drop = FALSE]
 )
-GDCdownload(query_rna)
-expdat <- GDCprepare(
-    query = query_rna,
-    save = TRUE, 
-    save.filename = file.path(dir_out, 'exp.rda')
-)
 
+# -- Prepare RPPA matrix
+rppa_data <- as.data.frame(rppa_data)
+rownames(rppa_data) <- rppa_data$sample
+rppa_mat <- rppa_data[, -1]
 
-# Load TCGA RPPA data
-query_rppa <- GDCquery(
-    project = "TCGA-PAAD", 
-    data.category = "Proteome Profiling",
-    data.type = "Protein Expression Quantification"
-)
-GDCdownload(query_rppa) 
-rppadat <- GDCprepare(
-    query = query_rppa,
-    save = TRUE, 
-    save.filename = file.path(dir_out, 'rppa.rda')
-)
+# -- Create annotation file for RPPA data
+annot <- read.csv(file = file.path(dir_in, 'MCLP_Proteins.csv'))
+df <- data.frame(protein = rownames(rppa_mat),
+                 updateProtein = substr(rownames(rppa_mat), 1, nchar(rownames(rppa_mat))-4))
 
-###############################################################
-## Preprocessing data
-###############################################################
-# 1- common samples between RPPA and RNA-seq
-## RNA-seq data
-expr <- assay(expdat)
-clin <- data.frame(colData(expdat))
-expr_annot <- data.frame(rowData(expdat))
+df <- df[!duplicated(df$updateProtein), ]
 
-patientid <- sapply(1:ncol(expr), function(k){
-  id <- strsplit(colnames(expr)[k], "-")[[1]]
-  paste(id[1], id[2], id[3], id[4], sep='-')
+int <- intersect(annot$updateProtein, df$updateProtein) # 219 in common
+df <- df[df$updateProtein %in%int, ]
+
+df$gene_name <- sapply(1:nrow(df), function(k){
+    annot[annot$updateProtein == df$updateProtein[k], 'Gene']
 })
-colnames(expr) <- patientid
-expr <- log2(expr+1)
 
-clin$patientid <- sapply(1:nrow(clin), function(k){
-  id <- strsplit(clin$barcode[k], "-")[[1]]
-  paste(id[1], id[2], id[3], id[4], sep='-')
-})
+write.csv(df, file = file.path(dir_out, 'protein_name.csv'), row.names= FALSE)
 
-## RPPA data
-rppa <- rppadat[, grep('TCGA-', colnames(rppadat), ignore.case = FALSE, perl = FALSE)]
-rppa_annot <- rppadat[, !colnames(rppadat) %in% colnames(rppa)]
+# -- Update RPPA matrix
+rppa_mat <- rppa_mat[rownames(rppa_mat) %in% df$protein, ]
+rppa_mat <- rppa_mat[order(rownames(rppa_mat)), ]
+df <- df[order(df$protein), ]
+rownames(rppa_mat) <- df$updateProtein
 
-int <- intersect(colnames(expr), colnames(rppa))
-expr <- expr[, int]
-rppa <- rppa[, int]
-clin <- clin[clin$patientid %in% int, ]
+# -- Build SummarizedExperiment objects (RPPA)
+rppa_se <- SummarizedExperiment(
+  assays = list(expr = rppa_mat),
+  colData = merged_cData[colnames(rppa_mat), , drop = FALSE],
+  rowData = df
+)
 
-# 2- Protein-coding genes 
-expr_annot <- expr_annot[expr_annot$gene_type == 'protein_coding', ]
-expr_annot <- expr_annot[!duplicated(expr_annot$gene_name), ]
-expr <- expr[rownames(expr) %in% rownames(expr_annot), ]
-rownames(expr) <- expr_annot$gene_name
+# -- Create MultiAssayExperiment
+mae <- MultiAssayExperiment(
+  experiments = list(RNAseq_TPM = rna_se, RPPA = rppa_se),
+  metadata = list(
+    source = "UCSC Xena (TCGA PAAD)",
+    download_date = Sys.Date(),
+    sessionInfo = sessionInfo()
+  )
+)
 
-# save RPPA, RNA-seq and clinical data
-paadData <- list('expr' = expr,
-                 'rppa' = rppa,
-                 'clin' = clin,
-                 'annot_expr' = expr_annot,
-                 'annot_rppa' = rppa_annot)
-save(paadData, file = file.path(dir_out, 'paad_tcga.rda'))
-
+# -- Save as serialized object
+qsave(mae, file = file.path(dir_out, "TCGA_PAAD_mae.qs"), nthread = getDTthreads())
