@@ -1,7 +1,6 @@
 #######################################################
 ## load libraries
 #######################################################
-
 library(UCSCXenaTools)
 library(dplyr)
 library(data.table)
@@ -21,10 +20,7 @@ xd <- as.data.table(XenaData)
 cohort <- "TCGA Pancreatic Cancer (PAAD)"
 
 # -- Get RNA-seq (TPM) and RPPA dataset identifiers
-rna_label <- "HiSeqV2"
-rppa_label <- "protein expression RPPA"
-
-rna_datasets <- xd[XenaCohorts == cohort & grepl(rna_label, XenaDatasets), XenaDatasets]
+rna_datasets <- xd[XenaCohorts == cohort & grepl("HiSeqV2", XenaDatasets), XenaDatasets]
 rppa_datasets <- xd[XenaCohorts == cohort & grepl("RPPA", DataSubtype), XenaDatasets]
 
 # -- Get clinical matrix
@@ -60,13 +56,12 @@ sData <- copy(clinical_data[["PAAD_survival.txt"]])
 sData <- as.data.table(sData)
 setkeyv(sData, "sample")
 
-merged_cData <- sData[cData, on = "sample"]
+merged_cData <- sData[cData, on = "sample"] # 196 samples with clinical data
 
-# Load only RNA-seq TPM and gene annotation
+# Load only RNA-seq expression and gene annotation
 rna_expr <- as.data.frame(rna_data[["HiSeqV2.gz"]])
 rownames(rna_expr) <- rna_expr$sample
-rna_mat <- rna_expr[, -1]
-
+rna_mat <- rna_expr[, -1] # 183 samples
 
 # -- Build SummarizedExperiment objects (RNA)
 rna_se <- SummarizedExperiment(
@@ -86,9 +81,8 @@ df <- data.frame(protein = rownames(rppa_mat),
 
 df <- df[!duplicated(df$updateProtein), ]
 
-int <- intersect(annot$updateProtein, df$updateProtein) # 219 in common
+int <- intersect(annot$updateProtein, df$updateProtein) # 219 proteins in common
 df <- df[df$updateProtein %in%int, ]
-
 df$gene_name <- sapply(1:nrow(df), function(k){
     annot[annot$updateProtein == df$updateProtein[k], 'Gene']
 })
@@ -110,7 +104,7 @@ rppa_se <- SummarizedExperiment(
 
 # -- Create MultiAssayExperiment
 mae <- MultiAssayExperiment(
-  experiments = list(RNAseq_TPM = rna_se, RPPA = rppa_se),
+  experiments = list(RNAseq = rna_se, RPPA = rppa_se),
   metadata = list(
     source = "UCSC Xena (TCGA PAAD)",
     download_date = Sys.Date(),
