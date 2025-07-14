@@ -110,7 +110,7 @@ gene_info <- getBM(
 gene_info <- gene_info[!duplicated(gene_info$hgnc_symbol), ]
 annot <- gene_info[!duplicated(gene_info$ensembl_gene_id), ]
 rna_mat <- rna_data[rownames(rna_data) %in% annot$ensembl_gene_id, ]
-rownames(rna_mat) <- annot$hgnc_symbol
+# rownames(rna_mat) <- annot$hgnc_symbol
 
 # -- Build SummarizedExperiment objects (RNA)
 rna_se <- SummarizedExperiment(

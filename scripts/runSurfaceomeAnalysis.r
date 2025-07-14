@@ -20,7 +20,8 @@ mae <- qread(file.path(dir_out, 'TCGA_PAAD_mae.qs'))
 rna <- assay(mae[["RNAseq"]])
 rppa <- assay(mae[["RPPA"]])
 clin <- as.data.frame(colData(mae[["RNAseq"]]))
-annot <- as.data.frame(rowData(mae[["RPPA"]]))
+annot_rppa <- as.data.frame(rowData(mae[["RPPA"]]))
+annot_rna <- as.data.frame(rowData(mae[["RNAseq"]]))
 
 # Transfer protein's name to gene name
 #sub_annot <- annot[grepl("///", annot$gene_name), ]
@@ -41,7 +42,7 @@ clin <- clin[clin$sample %in% common_samples, ]
 # Aim 1: Filter RNA and RPPA to surfaceome genes
 # --------------------------------------------------
 surfaceome_dat <- read_excel(file.path(dir_in, 'table_S3_surfaceome.xlsx'), sheet = "in silico surfaceome only")
-rna_surface <- rna[rownames(rna) %in% surfaceome_dat$'UniProt gene', ] # 2619 genes in common
+rna_surface <- rna[rownames(rna) %in% surfaceome_dat$'UniProt gene', ] # 2674 genes in common
 
 # Save filtered matrices
 dat <- list('rna' = rna_surface,
