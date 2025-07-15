@@ -1,30 +1,17 @@
-# PDAC Surfaceome Mapping
+# 🧬 PDAC Surfaceome Mapping
 
-**Pancreatic ductal adenocarcinoma (PDAC)** is one of the most lethal and heterogeneous cancers, with limited therapeutic options and few reliable biomarkers. This project explores the **surfaceome** proteins on the cell surface as a potential source of clinically relevant diagnostic, prognostic, and therapeutic targets.
+**Pancreatic ductal adenocarcinoma (PDAC)** is one of the deadliest cancers, with high heterogeneity and limited treatment options. This project focuses on the **surfaceome**—proteins on the cell surface—as a source of biomarkers and therapeutic targets. By analyzing TCGA transcriptomic and clinical data, we aim to identify surface proteins that distinguish tumor subtypes and correlate with clinical outcomes.
 
-```
+---
 
-## Objective
+## 🎯 Objectives
 
-To systematically map surface protein expression across PDAC tumors using TCGA data, stratify tumor subtypes, and identify candidate surface biomarkers linked to clinical outcomes.
+- Map surface protein expression profiles across PDAC tumors
+- Stratify tumors based on surfaceome signatures
+- Identify surface markers associated with survival (OS, DSS, DFI, PFI)
+- Explore therapeutic and diagnostic implications of surfaceome heterogeneity
 
-```
-
-## Data Sources
-
-- **Transcriptomic & clinical data**: TCGA-PAAD (via GDC or UCSC Xena)
-- **Surfaceome gene sets**: Curated from literature and surface protein databases
-
-## Methods
-
-- Preprocessing of RNA-seq and clinical metadata
-- Filtering for known surface proteins
-- Signatures (IO and TME) analysis
-- Association with time-to-event outcomes (OS and PFI)
-- Tumor clustering based on surfaceome profiles
-- Visualization and biomarker prioritization
-
-```
+---
 
 ## 📦 Environment Setup
 
@@ -45,19 +32,26 @@ cd pdac-surfaceome
 # Create and activate the environment
 pixi install
 pixi run R         # Start an R session inside the environment
-## Folder Structure
+```
+
+---
+
+## 📁 Folder Structure
 
 ```md
-
-├── data/                   # All data-related files
-│   ├── raw/                # Unprocessed input data (e.g., TCGA downloads)
-│   ├── proc/               # Cleaned and filtered data (e.g., expression matrices, clinical tables)
-│   └── results/            # Data outputs from analysis (e.g., signature scores, survival stats, figures)
+.
+├── data/                      # All data files
+│   ├── raw/                   # Unprocessed TCGA data (clinical, RNA-seq)
+│   ├── proc/                  # Cleaned and formatted data for analysis
+│   └── results/               # Analysis output (signature scores, survival stats, figures)
 │
-├── scripts/                # R scripts for processing and analysis
-│   ├── runProcData.r               # Preprocessing TCGA data (expression & clinical)
-│   ├── runSurfaceomeAnalysis.r     # Surfaceome gene filtering, expression, and clustering
-│   ├── runDeconAnalysis.r          # General immune deconvolution analysis
-│   └── runDeconAnalysis_tme.r      # Tumor microenvironment-specific deconvolution
+├── scripts/                   # R scripts for pipeline execution
+│   ├── runProcData.r                  # Preprocessing TCGA data
+│   ├── runSurfaceomeAnalysis.r        # Surfaceome filtering & clustering
+│   ├── runDeconAnalysis.r             # General deconvolution
+│   └── runDeconAnalysis_tme.r         # TME-specific deconvolution
 │
-└── README.md               # Project overview and usage
+├── pixi.toml                  # Pixi environment configuration
+├── pixi.lock                  # Locked dependencies
+└── README.md                  # Project overview and setup guide
+```
