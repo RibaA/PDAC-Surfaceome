@@ -23,7 +23,7 @@ To systematically map surface protein expression across PDAC tumors using TCGA d
 ## Folder Structure
 
 ```md
-.
+
 ├── data/                   # All data-related files
 │   ├── raw/                # Unprocessed input data (e.g., TCGA downloads)
 │   ├── proc/               # Cleaned and filtered data (e.g., expression matrices, clinical tables)
