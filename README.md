@@ -26,8 +26,8 @@ This project uses [**Pixi**](https://prefix.dev/docs/pixi/) for reproducible env
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/pdac-surfaceome.git
-cd pdac-surfaceome
+git clone https://github.com/your-username/PDAC-Surfaceome.git
+cd PDAC-Surfaceome
 
 # Create and activate the environment
 pixi install
