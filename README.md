@@ -2,9 +2,13 @@
 
 **Pancreatic ductal adenocarcinoma (PDAC)** is one of the most lethal and heterogeneous cancers, with limited therapeutic options and few reliable biomarkers. This project explores the **surfaceome** proteins on the cell surface as a potential source of clinically relevant diagnostic, prognostic, and therapeutic targets.
 
+```
+
 ## Objective
 
 To systematically map surface protein expression across PDAC tumors using TCGA data, stratify tumor subtypes, and identify candidate surface biomarkers linked to clinical outcomes.
+
+```
 
 ## Data Sources
 
@@ -20,6 +24,27 @@ To systematically map surface protein expression across PDAC tumors using TCGA d
 - Tumor clustering based on surfaceome profiles
 - Visualization and biomarker prioritization
 
+```
+
+## 📦 Environment Setup
+
+This project uses [**Pixi**](https://prefix.dev/docs/pixi/) for reproducible environment and dependency management.
+
+### Requirements
+
+- [Pixi](https://prefix.dev/docs/pixi/getting-started/installation/)
+- Git
+
+### Setup Instructions
+
+```bash
+# Clone the repo
+git clone https://github.com/your-username/pdac-surfaceome.git
+cd pdac-surfaceome
+
+# Create and activate the environment
+pixi install
+pixi run R         # Start an R session inside the environment
 ## Folder Structure
 
 ```md
