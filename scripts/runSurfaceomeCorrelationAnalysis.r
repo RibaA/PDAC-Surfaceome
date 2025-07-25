@@ -6,6 +6,8 @@ library(data.table)
 library(readxl)
 library(PredictioR)
 library(qs)
+library(ComplexHeatmap)
+library(colorRamp2)
 library(MultiAssayExperiment)
 
 dir_in <- 'data/proc'
@@ -47,8 +49,8 @@ surfaceome_dat <- read_excel(file.path('data/raw', 'table_S3_surfaceome.xlsx'), 
 surfaceome_dat <- surfaceome_dat[surfaceome_dat$'Surfaceome Label' == 'surface', ]
 annot_surfaceome <- annot_rppa[annot_rppa$gene_name %in% surfaceome_dat$'UniProt gene', ]
 #rna_surface <- rna[rownames(rna) %in% surfaceome_dat$'UniProt gene', ] 
-rppa_surface <- rppa[rownames(rppa) %in% annot_surfaceome$updateProtein, ]  # 22 proteins
-
+rppa_surface <- rppa[rownames(rppa) %in% annot_surfaceome$updateProtein, ]  # 20 proteins --> removing NAs
+rppa_surface <- na.omit(rppa_surface)
 # --------------------------------------------------
 # Association of RPPA with cell types (using xCell)
 # --------------------------------------------------
@@ -85,10 +87,9 @@ cor_xcell <- do.call(rbind, cor_cell_protein)
 write.csv(cor_xcell , file = file.path(dir_out, 'xcell', 'surface_rppa_xcell_correlation.csv'), row.names = FALSE)
 
 
-
-# --------------------------------------------------
-# Association of RPPA with cell types (using xCell)
-# --------------------------------------------------
+# -------------------------------------------------------
+# Association of RPPA with cell types (using CIBERSORT)
+# -------------------------------------------------------
 # load cibersort outputs
 load(file.path(dir_out, 'cibersort', 'cibersort_tme.RData'))
 cell <- as.data.frame(cibersort_tme$cell)
@@ -119,4 +120,47 @@ cor_cell_protein <- lapply(1:ncol(cell), function(k){
 cor_cibersort <- do.call(rbind, cor_cell_protein)
 # cor_cibersort [cor_cibersort$pval < 0.05, ]
 
-write.csv(cor_xcell , file = file.path(dir_out, 'cibersort', 'surface_rppa_cibersort_correlation.csv'), row.names = FALSE)
+write.csv(cor_cibersort , file = file.path(dir_out, 'cibersort', 'surface_rppa_cibersort_correlation.csv'), row.names = FALSE)
+
+########################################################
+# Heatmap 22 surface proteins
+########################################################
+df <- na.omit(rppa_surface)
+df <- t(scale(t(df)))
+df <- df[, order(colnames(df))]
+clin <- clin[order(rownames(clin)), ]
+
+col = list( Histo = c( "Other" = "#67A9CF" , "PDAC" = "#EF8A62" ) ,
+            Sex = c( "F" = "#fee090" , "M" = "#4477AA" ),
+            Stage = c("I" = '#525252', "II" = "#35978f" , "III" = "#bf812d" , "IV" = "#8073ac"))
+
+# Create the heatmap annotation
+ha <- HeatmapAnnotation(
+  Histo = clin$histo,
+  Sex = clin$sex,
+  Stage = clin$stage,
+  col = col,
+  annotation_name_gp = gpar(fontsize = 8),
+  simple_anno_size = unit(0.5, "cm")
+)
+
+# Combine the heatmap and the annotation
+pdf(file=file.path(dir_out, "heatmap_surface_rppa.pdf"),
+     width = 8, height = 6)
+
+ht_data <- Heatmap(df, name = "expr",
+                   top_annotation = ha,
+                   show_row_names = TRUE, 
+                   show_column_names = FALSE,
+                   row_names_gp = gpar(fontsize = 8),
+                   column_names_gp = gpar(fontsize = 8),
+                   colorRamp2(c(-5, median(df), 9), 
+                              c("#045a8d", "white", "#800026")))
+
+draw(ht_data,
+     column_title_gp = gpar(fontsize = 8, fontface = "bold"),
+     #merge_legends = TRUE,
+     heatmap_legend_side = "right",
+     annotation_legend_side="bottom")
+
+dev.off()
