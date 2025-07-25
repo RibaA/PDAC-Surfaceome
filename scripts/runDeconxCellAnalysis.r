@@ -52,7 +52,7 @@ dim(expr) # ~ 25K genes
 
 ################################################################
 ################################################################
-# Part 1: Run xCell to infer immune and stromal cell types
+# Run xCell to infer immune and stromal cell types
 ################################################################
 ################################################################
 cell <- deconvo_tme(eset = expr, method = "xcell", arrays = FALSE)
