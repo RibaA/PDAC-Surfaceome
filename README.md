@@ -40,18 +40,20 @@ pixi run R         # Start an R session inside the environment
 
 ```md
 .
-├── data/                      # All data files
-│   ├── raw/                   # Unprocessed TCGA data (clinical, RNA-seq)
-│   ├── proc/                  # Cleaned and formatted data for analysis
-│   └── results/               # Analysis output (signature scores, survival stats, figures)
+├── data/
+│   ├── raw/                     # Raw input data (TCGA RNA-seq, clinical)
+│   ├── proc/                    # Processed and curated data
+│   └── results/                 # Output from all analyses
 │
-├── scripts/                   # R scripts for pipeline execution
-│   ├── runProcData.r                  # Preprocessing TCGA data
-│   ├── runSurfaceomeAnalysis.r        # Surfaceome filtering & clustering
-│   ├── runDeconAnalysis.r             # General deconvolution
-│   └── runDeconAnalysis_tme.r         # TME-specific deconvolution
+├── scripts/
+│   ├── runProcData.r                       # TCGA data preprocessing & clinical curation
+│   ├── runSurfaceomeAnalysis.r            # Gene filtering and surfaceome clustering
+│   ├── runSurfaceomeCorrelationAnalysis.r # Correlation between surfaceome and TME/cell types
+│   ├── runDeconCibersortAnalysis.r        # CIBERSORT-based deconvolution (removes low-expressed genes)
+│   ├── runDeconxCellAnalysis.r            # xCell-based deconvolution (removes low-expressed genes)
 │
-├── pixi.toml                  # Pixi environment configuration
-├── pixi.lock                  # Locked dependencies
-└── README.md                  # Project overview and setup guide
+├── pixi.toml                   # Pixi environment spec
+├── pixi.lock                   # Locked package versions
+└── README.md                   # This file
+
 ```
