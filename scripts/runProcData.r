@@ -48,7 +48,33 @@ sData <- copy(clinical_data[["PAAD_survival.txt"]])
 sData <- as.data.table(sData)
 setkeyv(sData, "sample")
 
-merged_cData <- sData[cData, on = "sample"] # 196 samples with clinical data
+clin <- sData[cData, on = "sample"] # 196 samples with clinical data
+
+# -- curate and standarized clinical variables
+# Overall survival
+clin$os_time <- round(clin$OS.time / 30.44)
+clin$os_status <- clin$OS
+
+# Progression-Free Interval
+clin$pfi_time <- round(clin$PFI.time / 30.44)
+clin$pfi_status <- clin$PFI
+
+# stage
+table(clin$pathologic_stage)
+clin$stage <- clin$pathologic_stage
+clin$stage <- ifelse(clin$stage %in% c('Stage IA', 'Stage IB'), 'I', clin$stage)
+clin$stage <- ifelse(clin$stage %in% c('Stage IIA', 'Stage IIB'), 'II', clin$stage)
+clin$stage <- ifelse(clin$stage %in% c('Stage III'), 'III', clin$stage)
+clin$stage <- ifelse(clin$stage %in% c('Stage IV'), 'IV', clin$stage)
+
+# sex
+table(clin$gender)
+clin$sex <- ifelse(clin$gender == 'MALE', 'M', 'F')
+
+# histology
+table(clin$histological_type)
+clin$histo <- clin$histological_type
+clin$histo <- ifelse(clin$histo == 'Pancreas-Adenocarcinoma Ductal Type', 'PDAC', 'Other')
 
 # -- Prepare RPPA matrix
 rppa_data <- as.data.frame(rppa_data)
@@ -79,7 +105,7 @@ rownames(rppa_mat) <- df$updateProtein # 219 proteins and 123 samples
 # -- Build SummarizedExperiment objects (RPPA)
 rppa_se <- SummarizedExperiment(
   assays = list(expr = rppa_mat),
-  colData = merged_cData[colnames(rppa_mat), , drop = FALSE],
+  colData = clin[colnames(rppa_mat), , drop = FALSE],
   rowData = df
 )
 
@@ -115,7 +141,7 @@ rna_mat <- rna_data[rownames(rna_data) %in% annot$ensembl_gene_id, ]
 # -- Build SummarizedExperiment objects (RNA)
 rna_se <- SummarizedExperiment(
   assays = list(expr = rna_mat),
-  colData = merged_cData[colnames(rna_mat), , drop = FALSE],
+  colData = clin[colnames(rna_mat), , drop = FALSE],
   rowData = annot
 )
 
