@@ -50,11 +50,15 @@ annot_surfaceome <- annot_rppa[annot_rppa$gene_name %in% surfaceome_dat$'UniProt
 rppa_surface <- rppa[rownames(rppa) %in% annot_surfaceome$updateProtein, ]  # 22 proteins
 
 # --------------------------------------------------
-# Association of RPPA with cell types
+# Association of RPPA with cell types (using xCell)
 # --------------------------------------------------
 # load xCell outputs
 load(file.path(dir_out, 'xcell', 'xcell_tme.RData'))
-cell <- as.data.frame(xcell_tme$cell[, 2:65])
+cell <- as.data.frame(xcell_tme$cell)
+rownames(cell) <- cell$ID
+cell <- as.data.frame(cell[, 2:65])
+cell <- cell[order(rownames(cell)), ]
+rppa_surface <- rppa_surface[, order(colnames(rppa_surface))]
 
 cor_cell_protein <- lapply(1:ncol(cell), function(k){
 
@@ -63,6 +67,7 @@ cor_cell_protein <- lapply(1:ncol(cell), function(k){
     fit  <- cor.test(as.numeric(cell[, k]), as.numeric(rppa_surface[i, ]))
     data.frame(cellType = substr(colnames(cell)[k], 1, nchar(colnames(cell)[k])-6),
                protein = rownames(rppa_surface)[i],
+               gene_name = annot_surfaceome[rownames(annot_surfaceome) == rownames(rppa_surface)[i], 'gene_name'], 
                r = fit$estimate,
                pval= fit$p.value)   
 
@@ -78,3 +83,40 @@ cor_xcell <- do.call(rbind, cor_cell_protein)
 # cor_xcell [cor_xcell$pval < 0.05, ]
 
 write.csv(cor_xcell , file = file.path(dir_out, 'xcell', 'surface_rppa_xcell_correlation.csv'), row.names = FALSE)
+
+
+
+# --------------------------------------------------
+# Association of RPPA with cell types (using xCell)
+# --------------------------------------------------
+# load cibersort outputs
+load(file.path(dir_out, 'cibersort', 'cibersort_tme.RData'))
+cell <- as.data.frame(cibersort_tme$cell)
+rownames(cell) <- cell$ID
+cell <- as.data.frame(cell[, 2:23])
+cell <- cell[order(rownames(cell)), ]
+rppa_surface <- rppa_surface[, order(colnames(rppa_surface))]
+
+cor_cell_protein <- lapply(1:ncol(cell), function(k){
+
+  res_per_cell <- lapply(1:nrow(rppa_surface), function(i){
+
+    fit  <- cor.test(as.numeric(cell[, k]), as.numeric(rppa_surface[i, ]))
+    data.frame(cellType = substr(colnames(cell)[k], 1, nchar(colnames(cell)[k])-10),
+               protein = rownames(rppa_surface)[i],
+               gene_name = annot_surfaceome[rownames(annot_surfaceome) == rownames(rppa_surface)[i], 'gene_name'], 
+               r = fit$estimate,
+               pval= fit$p.value)   
+
+  })
+
+     res <- do.call(rbind, res_per_cell)
+     res <- res[!is.na(res$r), ]
+     res$FDR <- p.adjust(res$pval, method = "BH")
+     res
+})
+
+cor_cibersort <- do.call(rbind, cor_cell_protein)
+# cor_cibersort [cor_cibersort$pval < 0.05, ]
+
+write.csv(cor_xcell , file = file.path(dir_out, 'cibersort', 'surface_rppa_cibersort_correlation.csv'), row.names = FALSE)
