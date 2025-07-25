@@ -1,10 +1,10 @@
 #######################################################
 ## load libraries
 #######################################################
-
 library(dplyr)
 library(qs)
 library(IOBR)
+library(PredictioR)
 library(NbClust)
 library(ComplexHeatmap)
 library(RColorBrewer)
